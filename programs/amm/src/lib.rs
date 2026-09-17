@@ -5,6 +5,7 @@
 //! overflow behaviour behind every instruction is auditable here.
 
 pub mod constants;
+pub mod curve;
 pub mod error;
 pub mod state;
 
