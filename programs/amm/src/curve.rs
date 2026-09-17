@@ -40,3 +40,18 @@ fn integer_sqrt(value: u128) -> u128 {
     }
     guess
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn integer_sqrt_is_exact_on_squares_and_floors_otherwise() {
+        assert_eq!(integer_sqrt(0), 0);
+        assert_eq!(integer_sqrt(1), 1);
+        assert_eq!(integer_sqrt(2), 1);
+        assert_eq!(integer_sqrt(1_000_000), 1_000);
+        assert_eq!(integer_sqrt(1_000_001), 1_000);
+        assert_eq!(integer_sqrt(u128::from(u64::MAX)), 4_294_967_295);
+    }
+}
