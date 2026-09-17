@@ -157,3 +157,154 @@ pub fn compute_swap(
         protocol_fee,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FEE_BPS: u16 = 30;
+    const PROTOCOL_FEE_BPS: u16 = 2_000;
+
+    /// `k` after a swap, with the protocol fee taken out of the vault.
+    fn invariant_after_swap(
+        reserve_in: u64,
+        reserve_out: u64,
+        amount_in: u64,
+        swap: SwapAmounts,
+    ) -> u128 {
+        let new_in = (reserve_in + amount_in - swap.protocol_fee) as u128;
+        let new_out = (reserve_out - swap.amount_out) as u128;
+        new_in * new_out
+    }
+
+    #[test]
+    fn integer_sqrt_is_exact_on_squares_and_floors_otherwise() {
+        assert_eq!(integer_sqrt(0), 0);
+        assert_eq!(integer_sqrt(1), 1);
+        assert_eq!(integer_sqrt(2), 1);
+        assert_eq!(integer_sqrt(1_000_000), 1_000);
+        assert_eq!(integer_sqrt(1_000_001), 1_000);
+        assert_eq!(integer_sqrt(u128::from(u64::MAX)), 4_294_967_295);
+    }
+
+    #[test]
+    fn later_deposits_follow_the_smaller_side() {
+        // Pool at 1:4, the depositor offers too much y.
+        let deposit = compute_deposit(1_000_000, 4_000_000, 2_000_000, 100_000, 900_000).unwrap();
+
+        assert_eq!(deposit.lp_tokens, 200_000);
+        assert_eq!(deposit.amount_x, 100_000);
+        assert_eq!(deposit.amount_y, 400_000);
+    }
+
+    #[test]
+    fn deposit_never_asks_for_more_than_the_caller_offered() {
+        let (reserve_x, reserve_y, supply) = (1_000_003u64, 7_777_771u64, 2_645_749u64);
+
+        for offered in 1..500u64 {
+            let max_x = offered * 37;
+            let max_y = offered * 211;
+            if let Ok(deposit) = compute_deposit(reserve_x, reserve_y, supply, max_x, max_y) {
+                assert!(deposit.amount_x <= max_x);
+                assert!(deposit.amount_y <= max_y);
+            }
+        }
+    }
+
+    #[test]
+    fn deposit_then_withdraw_never_returns_more_than_it_put_in() {
+        let (mut reserve_x, mut reserve_y, mut supply) = (1_000_003u64, 7_777_771u64, 2_645_749u64);
+
+        for step in 1..200u64 {
+            let max_x = step * 13;
+            let max_y = step * 101;
+            let deposit = compute_deposit(reserve_x, reserve_y, supply, max_x, max_y).unwrap();
+            reserve_x += deposit.amount_x;
+            reserve_y += deposit.amount_y;
+            supply += deposit.lp_tokens;
+
+            let (out_x, out_y) =
+                compute_withdraw(reserve_x, reserve_y, supply, deposit.lp_tokens).unwrap();
+            assert!(out_x <= deposit.amount_x);
+            assert!(out_y <= deposit.amount_y);
+
+            reserve_x -= out_x;
+            reserve_y -= out_y;
+            supply -= deposit.lp_tokens;
+        }
+    }
+
+    #[test]
+    fn swap_prices_against_the_invariant() {
+        // 1_000_000 / 1_000_000 pool, 1_000 in, 0.3% fee.
+        let swap = compute_swap(1_000_000, 1_000_000, 1_000, FEE_BPS, PROTOCOL_FEE_BPS).unwrap();
+
+        assert_eq!(swap.lp_fee + swap.protocol_fee, 3);
+        assert_eq!(swap.protocol_fee, 0); // 20% of 3 base units rounds down to 0
+        assert_eq!(swap.amount_out, 996);
+    }
+
+    #[test]
+    fn swap_splits_the_fee_between_the_pool_and_the_treasury() {
+        let swap =
+            compute_swap(50_000_000, 50_000_000, 1_000_000, FEE_BPS, PROTOCOL_FEE_BPS).unwrap();
+
+        assert_eq!(swap.lp_fee + swap.protocol_fee, 3_000);
+        assert_eq!(swap.protocol_fee, 600);
+        assert_eq!(swap.lp_fee, 2_400);
+    }
+
+    #[test]
+    fn swap_never_lowers_the_invariant() {
+        let reserve_in = 923_457_011u64;
+        let reserve_out = 51_112_887u64;
+        let before = (reserve_in as u128) * (reserve_out as u128);
+
+        for amount_in in [100u64, 1_000, 65_537, 10_000_000, 500_000_000] {
+            let swap = compute_swap(
+                reserve_in,
+                reserve_out,
+                amount_in,
+                FEE_BPS,
+                PROTOCOL_FEE_BPS,
+            )
+            .unwrap();
+            assert!(swap.amount_out < reserve_out);
+            assert!(invariant_after_swap(reserve_in, reserve_out, amount_in, swap) >= before);
+        }
+    }
+
+    #[test]
+    fn swap_holds_the_invariant_even_when_the_treasury_takes_the_whole_fee() {
+        let (reserve_in, reserve_out) = (923_457_011u64, 51_112_887u64);
+        let before = (reserve_in as u128) * (reserve_out as u128);
+
+        for amount_in in [100u64, 1_000, 65_537, 10_000_000, 500_000_000] {
+            let swap = compute_swap(reserve_in, reserve_out, amount_in, FEE_BPS, 10_000).unwrap();
+            assert_eq!(swap.lp_fee, 0);
+            assert!(invariant_after_swap(reserve_in, reserve_out, amount_in, swap) >= before);
+        }
+    }
+
+    #[test]
+    fn swap_holds_up_at_the_top_of_the_u64_range() {
+        let swap = compute_swap(u64::MAX / 2, u64::MAX / 2, u64::MAX / 4, FEE_BPS, 0).unwrap();
+
+        assert!(swap.amount_out > 0);
+        assert!(swap.amount_out < u64::MAX / 2);
+    }
+
+    #[test]
+    fn swap_too_small_to_move_the_price_is_rejected() {
+        // Against a pool this lopsided the output rounds down to zero.
+        assert!(compute_swap(1_000_000_000, 1, 1_000, FEE_BPS, PROTOCOL_FEE_BPS).is_err());
+        // And an input the fee swallows whole leaves nothing to price.
+        assert!(compute_swap(1_000_000, 1_000_000, 1, FEE_BPS, PROTOCOL_FEE_BPS).is_err());
+    }
+
+    #[test]
+    fn empty_pool_cannot_be_swapped_against() {
+        assert!(compute_swap(0, 1_000, 100, FEE_BPS, PROTOCOL_FEE_BPS).is_err());
+        assert!(compute_swap(1_000, 0, 100, FEE_BPS, PROTOCOL_FEE_BPS).is_err());
+    }
+}
