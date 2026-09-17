@@ -4,11 +4,13 @@
 //! Curve math lives in [`curve`] instead of a dependency, so the rounding and
 //! overflow behaviour behind every instruction is auditable here.
 
+pub mod constants;
 pub mod error;
 pub mod state;
 
 use anchor_lang::prelude::*;
 
+pub use constants::*;
 pub use state::*;
 
 declare_id!("859An1PzpQeQQdfXbaq1vpC7zqVmy4tVrg6K1pThzBSY");
