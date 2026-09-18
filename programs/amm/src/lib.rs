@@ -54,4 +54,10 @@ pub mod amm {
     pub fn swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
         ctx.accounts.handler(amount_in, min_amount_out)
     }
+
+    /// Stops or restarts deposits and swaps. Withdrawals are never gated.
+    /// Authority only.
+    pub fn set_locked(ctx: Context<SetLocked>, locked: bool) -> Result<()> {
+        ctx.accounts.handler(locked)
+    }
 }

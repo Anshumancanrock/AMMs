@@ -37,3 +37,9 @@ pub struct Swapped {
     pub lp_fee: u64,
     pub protocol_fee: u64,
 }
+
+#[event]
+pub struct PoolLockSet {
+    pub config: Pubkey,
+    pub locked: bool,
+}
