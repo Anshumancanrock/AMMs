@@ -48,4 +48,10 @@ pub mod amm {
     pub fn withdraw(ctx: Context<Withdraw>, lp_tokens: u64, min_x: u64, min_y: u64) -> Result<()> {
         ctx.accounts.handler(lp_tokens, min_x, min_y)
     }
+
+    /// Trades `amount_in` of `mint_in` for at least `min_amount_out` of
+    /// `mint_out`.
+    pub fn swap(ctx: Context<Swap>, amount_in: u64, min_amount_out: u64) -> Result<()> {
+        ctx.accounts.handler(amount_in, min_amount_out)
+    }
 }

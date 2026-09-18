@@ -26,3 +26,13 @@ pub struct LiquidityWithdrawn {
     pub amount_y: u64,
     pub lp_tokens: u64,
 }
+
+#[event]
+pub struct Swapped {
+    pub config: Pubkey,
+    pub user: Pubkey,
+    pub mint_in: Pubkey,
+    pub amount_in: u64,
+    pub amount_out: u64,
+    pub lp_fee: u64,
+}
