@@ -51,6 +51,14 @@ pub struct Deposit<'info> {
 
     #[account(
         mut,
+        associated_token::mint = lp_mint,
+        associated_token::authority = config,
+        associated_token::token_program = token_program,
+    )]
+    pub locked_lp: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
         associated_token::mint = mint_x,
         associated_token::authority = user,
         associated_token::token_program = token_program,
@@ -85,6 +93,7 @@ impl<'info> Deposit<'info> {
     pub fn handler(&mut self, max_x: u64, max_y: u64, min_lp: u64) -> Result<()> {
         require!(!self.config.locked, AmmError::PoolLocked);
 
+        let first_deposit = self.lp_mint.supply == 0;
         let amounts = curve::compute_deposit(
             self.vault_x.amount,
             self.vault_y.amount,
@@ -97,6 +106,9 @@ impl<'info> Deposit<'info> {
         self.pull_in(&self.mint_x, &self.user_x, &self.vault_x, amounts.amount_x)?;
         self.pull_in(&self.mint_y, &self.user_y, &self.vault_y, amounts.amount_y)?;
 
+        if first_deposit {
+            self.mint_lp(&self.locked_lp, MINIMUM_LIQUIDITY)?;
+        }
         self.mint_lp(&self.user_lp, amounts.lp_tokens)?;
 
         emit!(LiquidityDeposited {

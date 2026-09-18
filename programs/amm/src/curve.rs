@@ -17,7 +17,8 @@ use crate::{constants::*, error::AmmError};
 pub struct DepositAmounts {
     pub amount_x: u64,
     pub amount_y: u64,
-    /// The depositor's share.
+    /// The depositor's share. A first deposit mints `MINIMUM_LIQUIDITY` on
+    /// top of this and locks it.
     pub lp_tokens: u64,
 }
 
@@ -62,8 +63,8 @@ fn integer_sqrt(value: u128) -> u128 {
 
 /// Deposit amounts and the LP tokens they mint.
 ///
-/// A first deposit sets the price and mints `sqrt(x * y)`. After that the
-/// smaller side decides the LP amount and
+/// A first deposit sets the price and mints `sqrt(x * y)` less the locked
+/// `MINIMUM_LIQUIDITY`. After that the smaller side decides the LP amount and
 /// the other side is trimmed to the pool ratio. The trim rounds up, so a
 /// depositor can pay one base unit over the ratio but never one under.
 pub fn compute_deposit(
@@ -76,9 +77,12 @@ pub fn compute_deposit(
     require!(max_x > 0 && max_y > 0, AmmError::ZeroAmount);
 
     if lp_supply == 0 {
-        let lp_tokens = u64::try_from(integer_sqrt((max_x as u128) * (max_y as u128)))
-            .map_err(|_| AmmError::MathOverflow)?;
-        require!(lp_tokens > 0, AmmError::ZeroAmount);
+        let minted = integer_sqrt((max_x as u128) * (max_y as u128));
+        let minted = u64::try_from(minted).map_err(|_| AmmError::MathOverflow)?;
+        let lp_tokens = minted
+            .checked_sub(MINIMUM_LIQUIDITY)
+            .ok_or(AmmError::InsufficientInitialLiquidity)?;
+        require!(lp_tokens > 0, AmmError::InsufficientInitialLiquidity);
 
         return Ok(DepositAmounts {
             amount_x: max_x,
@@ -185,6 +189,20 @@ mod tests {
         assert_eq!(integer_sqrt(1_000_000), 1_000);
         assert_eq!(integer_sqrt(1_000_001), 1_000);
         assert_eq!(integer_sqrt(u128::from(u64::MAX)), 4_294_967_295);
+    }
+
+    #[test]
+    fn first_deposit_mints_sqrt_of_the_product_minus_locked_liquidity() {
+        let deposit = compute_deposit(0, 0, 0, 1_000_000, 4_000_000).unwrap();
+
+        assert_eq!(deposit.amount_x, 1_000_000);
+        assert_eq!(deposit.amount_y, 4_000_000);
+        assert_eq!(deposit.lp_tokens, 2_000_000 - MINIMUM_LIQUIDITY);
+    }
+
+    #[test]
+    fn first_deposit_below_the_locked_amount_is_rejected() {
+        assert!(compute_deposit(0, 0, 0, 10, 10).is_err());
     }
 
     #[test]

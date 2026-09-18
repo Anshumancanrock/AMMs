@@ -90,6 +90,18 @@ pub struct Initialize<'info> {
     )]
     pub treasury_y: Box<InterfaceAccount<'info, TokenAccount>>,
 
+    /// Holds the `MINIMUM_LIQUIDITY` from the first deposit. The config is
+    /// its authority and no instruction transfers out of it, so the balance
+    /// is locked for the life of the pool.
+    #[account(
+        init,
+        payer = admin,
+        associated_token::mint = lp_mint,
+        associated_token::authority = config,
+        associated_token::token_program = token_program,
+    )]
+    pub locked_lp: Box<InterfaceAccount<'info, TokenAccount>>,
+
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
