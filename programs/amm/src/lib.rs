@@ -36,4 +36,10 @@ pub mod amm {
         ctx.accounts
             .handler(seed, fee_bps, protocol_fee_bps, authority, &ctx.bumps)
     }
+
+    /// Adds liquidity at the current ratio, up to `max_x` and `max_y`.
+    /// Reverts below `min_lp`.
+    pub fn deposit(ctx: Context<Deposit>, max_x: u64, max_y: u64, min_lp: u64) -> Result<()> {
+        ctx.accounts.handler(max_x, max_y, min_lp)
+    }
 }
