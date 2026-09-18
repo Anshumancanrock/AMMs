@@ -17,3 +17,12 @@ pub struct LiquidityDeposited {
     pub amount_y: u64,
     pub lp_tokens: u64,
 }
+
+#[event]
+pub struct LiquidityWithdrawn {
+    pub config: Pubkey,
+    pub user: Pubkey,
+    pub amount_x: u64,
+    pub amount_y: u64,
+    pub lp_tokens: u64,
+}

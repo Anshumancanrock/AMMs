@@ -42,4 +42,10 @@ pub mod amm {
     pub fn deposit(ctx: Context<Deposit>, max_x: u64, max_y: u64, min_lp: u64) -> Result<()> {
         ctx.accounts.handler(max_x, max_y, min_lp)
     }
+
+    /// Burns `lp_tokens` and pays out both sides. Reverts below `min_x` or
+    /// `min_y`.
+    pub fn withdraw(ctx: Context<Withdraw>, lp_tokens: u64, min_x: u64, min_y: u64) -> Result<()> {
+        ctx.accounts.handler(lp_tokens, min_x, min_y)
+    }
 }
