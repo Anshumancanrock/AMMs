@@ -44,6 +44,13 @@ pub struct Swap<'info> {
 
     #[account(
         mut,
+        seeds = [TREASURY_SEED, config.key().as_ref(), mint_in.key().as_ref()],
+        bump = config.treasury_bump(&mint_in.key()),
+    )]
+    pub treasury_in: Box<InterfaceAccount<'info, TokenAccount>>,
+
+    #[account(
+        mut,
         associated_token::mint = mint_in,
         associated_token::authority = user,
         associated_token::token_program = token_program,
@@ -80,7 +87,13 @@ impl<'info> Swap<'info> {
             AmmError::SlippageExceeded
         );
 
-        self.pull_in(&self.vault_in, amount_in)?;
+        // Trader pays the protocol cut directly to the treasury: the vault
+        // then holds exactly what backs the invariant, with no accrued-fee
+        // field to drift out of step with the balance. The LP share stays.
+        if amounts.protocol_fee > 0 {
+            self.pull_in(&self.treasury_in, amounts.protocol_fee)?;
+        }
+        self.pull_in(&self.vault_in, amount_in - amounts.protocol_fee)?;
         self.pay_out(amounts.amount_out)?;
 
         emit!(Swapped {
@@ -90,6 +103,7 @@ impl<'info> Swap<'info> {
             amount_in,
             amount_out: amounts.amount_out,
             lp_fee: amounts.lp_fee,
+            protocol_fee: amounts.protocol_fee,
         });
 
         Ok(())
