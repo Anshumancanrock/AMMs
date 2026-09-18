@@ -4,7 +4,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-use crate::{constants::*, error::AmmError, state::Config};
+use crate::{constants::*, error::AmmError, events::PoolCreated, state::Config};
 
 /// Creates the config, the LP mint, both vaults, both fee treasuries and the
 /// account that holds the locked liquidity.
@@ -122,6 +122,14 @@ impl Initialize<'_> {
             lp_bump: bumps.lp_mint,
             treasury_x_bump: bumps.treasury_x,
             treasury_y_bump: bumps.treasury_y,
+        });
+
+        emit!(PoolCreated {
+            config: self.config.key(),
+            mint_x: self.mint_x.key(),
+            mint_y: self.mint_y.key(),
+            fee_bps,
+            protocol_fee_bps,
         });
 
         Ok(())
