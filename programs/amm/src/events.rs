@@ -43,3 +43,10 @@ pub struct PoolLockSet {
     pub config: Pubkey,
     pub locked: bool,
 }
+
+#[event]
+pub struct FeesWithdrawn {
+    pub config: Pubkey,
+    pub mint: Pubkey,
+    pub amount: u64,
+}

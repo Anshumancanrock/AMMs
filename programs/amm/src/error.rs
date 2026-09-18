@@ -26,4 +26,6 @@ pub enum AmmError {
     InvalidMintPair,
     #[msg("Only the pool authority can call this")]
     Unauthorized,
+    #[msg("Treasury does not hold that many tokens")]
+    InsufficientTreasuryBalance,
 }

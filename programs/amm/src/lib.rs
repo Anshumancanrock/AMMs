@@ -60,4 +60,10 @@ pub mod amm {
     pub fn set_locked(ctx: Context<SetLocked>, locked: bool) -> Result<()> {
         ctx.accounts.handler(locked)
     }
+
+    /// Moves `amount` of collected fees from one treasury to the authority.
+    /// Authority only, and it cannot reach the vaults.
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
+        ctx.accounts.handler(amount)
+    }
 }
