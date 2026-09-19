@@ -19,23 +19,22 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(
-        constraint = mint_x.key() != mint_y.key() @ AmmError::IdenticalMints,
-        constraint = *mint_x.to_account_info().owner == token_program.key() @ AmmError::MintProgramMismatch,
-    )]
     pub mint_x: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(
-        constraint = *mint_y.to_account_info().owner == token_program.key() @ AmmError::MintProgramMismatch,
-    )]
     pub mint_y: Box<InterfaceAccount<'info, Mint>>,
 
+    // Both mint checks hang off the first `init` account on purpose. Anchor
+    // runs every `init` ahead of every plain constraint, so on `mint_x` or
+    // `mint_y` they would fire after the vaults had already been created.
     #[account(
         init,
         payer = admin,
         space = 8 + Config::INIT_SPACE,
         seeds = [CONFIG_SEED, &seed.to_le_bytes()],
         bump,
+        constraint = mint_x.key() != mint_y.key() @ AmmError::IdenticalMints,
+        constraint = *mint_x.to_account_info().owner == token_program.key() @ AmmError::MintProgramMismatch,
+        constraint = *mint_y.to_account_info().owner == token_program.key() @ AmmError::MintProgramMismatch,
     )]
     pub config: Box<Account<'info, Config>>,
 
