@@ -99,14 +99,22 @@ fn rejects_burning_more_lp_tokens_than_the_caller_holds() {
 }
 
 #[test]
-fn rejects_a_withdrawal_while_the_pool_is_locked() {
+fn a_locked_pool_still_lets_its_providers_out() {
     let mut pool = Pool::funded(DEPOSIT_X, DEPOSIT_Y);
     let admin = pool.admin();
     let lp = pool.lp();
+    let lp_x = pool.ata(&lp.pubkey(), &pool.mint_x);
+    let before_x = pool.balance(&lp_x);
+
     pool.set_locked(&admin, true).unwrap();
 
+    // Trading is stopped, but a proportional exit cannot move the price and
+    // the authority has no way to keep anyone's liquidity.
     assert_amm_error(
-        pool.withdraw(&lp, LP_TOKENS / 2, 0, 0),
+        pool.swap(&lp, pool.mint_x, pool.mint_y, 1_000_000, 0),
         AmmError::PoolLocked,
     );
+    pool.withdraw(&lp, LP_TOKENS / 2, 0, 0).unwrap();
+
+    assert_eq!(pool.balance(&lp_x) - before_x, 49_999_999_750);
 }

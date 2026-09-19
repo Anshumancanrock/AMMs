@@ -81,8 +81,10 @@ pub struct Withdraw<'info> {
 impl<'info> Withdraw<'info> {
     /// `min_x` and `min_y` are the slippage floor for burning `lp_tokens`.
     pub fn handler(&mut self, lp_tokens: u64, min_x: u64, min_y: u64) -> Result<()> {
-        require!(!self.config.locked, AmmError::PoolLocked);
-
+        // Deliberately not gated on `config.locked`. A proportional exit
+        // cannot move the price or take more than its share, so there is
+        // nothing for a lock to protect here, and gating it would let the
+        // authority strand liquidity.
         let (amount_x, amount_y) = curve::compute_withdraw(
             self.vault_x.amount,
             self.vault_y.amount,
