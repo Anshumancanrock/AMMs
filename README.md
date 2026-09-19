@@ -81,3 +81,22 @@ seeds, so there is no path from an authority signature to a vault.
   reserves, so `initialize` refuses anything longer than a bare mint.
 - A locked pool still honours `withdraw`. A proportional exit cannot move the
   price, and an admin key should not be able to strand liquidity.
+
+## Build and test
+
+anchor-cli 1.1.2, Solana 3.1.10, and the Rust 1.89.0 toolchain pinned in
+`rust-toolchain.toml`.
+
+```sh
+anchor build
+anchor test
+```
+
+68 tests: 13 on the curve math, 54 integration tests over every instruction
+and its failure paths, and one pinning compute usage, where a swap costs about
+52,000 CU. They run against [LiteSVM](https://github.com/LiteSVM/litesvm) in
+process, so no validator starts and the suite takes about six seconds.
+
+A fresh clone gets a new program keypair from `anchor build`, so run
+`anchor keys sync` before deploying or every instruction fails with
+`DeclaredProgramIdMismatch`.
