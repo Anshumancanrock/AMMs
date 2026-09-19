@@ -54,3 +54,15 @@ that stay locked. Later deposits follow the smaller side and round the other
 up, so a depositor can pay one base unit over the ratio and never one under.
 Withdrawals round down on both sides. Every product widens to `u128` before
 dividing, so two `u64::MAX` reserves cannot overflow the intermediate.
+
+## Fees and the treasury
+
+`fee_bps` is charged on swap input, capped at 10%. `protocol_fee_bps` is the
+treasury's share of it; the rest stays in the vault and lifts the value of
+every LP token. At the 0.3% and 20% the tests use, a 1,000,000,000 swap pays
+3,000,000 in fees, of which 600,000 reaches the treasury.
+
+The trader pays the protocol cut straight to the treasury, so the vault holds
+exactly what backs the invariant and no accrued-fee field can drift out of
+step with the balance. `withdraw_fees` derives its source from the treasury
+seeds, so there is no path from an authority signature to a vault.
