@@ -28,4 +28,8 @@ pub enum AmmError {
     Unauthorized,
     #[msg("Treasury does not hold that many tokens")]
     InsufficientTreasuryBalance,
+    #[msg(
+        "Mint extensions can change how much of a transfer arrives, so pools only take plain mints"
+    )]
+    MintHasExtensions,
 }

@@ -35,6 +35,8 @@ pub struct Initialize<'info> {
         constraint = mint_x.key() != mint_y.key() @ AmmError::IdenticalMints,
         constraint = *mint_x.to_account_info().owner == token_program.key() @ AmmError::MintProgramMismatch,
         constraint = *mint_y.to_account_info().owner == token_program.key() @ AmmError::MintProgramMismatch,
+        constraint = mint_x.to_account_info().data_len() == PLAIN_MINT_LEN @ AmmError::MintHasExtensions,
+        constraint = mint_y.to_account_info().data_len() == PLAIN_MINT_LEN @ AmmError::MintHasExtensions,
     )]
     pub config: Box<Account<'info, Config>>,
 

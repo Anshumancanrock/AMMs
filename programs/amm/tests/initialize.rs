@@ -82,6 +82,27 @@ fn rejects_a_pool_whose_mints_use_different_token_programs() {
 }
 
 #[test]
+fn rejects_a_mint_that_carries_extensions() {
+    let mut pool = Pool::new();
+    let mint_x = pool.create_mint_with_transfer_fee(6);
+    let mint_y = pool.create_mint_owned_by(9, TOKEN_2022_PROGRAM_ID);
+
+    // Both mints are Token-2022, so the pair itself is fine. The transfer fee
+    // on the first one is not: it would take a cut on the way into the vault
+    // and leave the reserves short of what the curve priced.
+    assert_amm_error(
+        pool.initialize_pair_under(
+            mint_x,
+            mint_y,
+            TOKEN_2022_PROGRAM_ID,
+            FEE_BPS,
+            PROTOCOL_FEE_BPS,
+        ),
+        AmmError::MintHasExtensions,
+    );
+}
+
+#[test]
 fn rejects_a_second_pool_on_the_same_seed() {
     let mut pool = Pool::new();
     pool.initialize(FEE_BPS, PROTOCOL_FEE_BPS).unwrap();
