@@ -66,3 +66,18 @@ The trader pays the protocol cut straight to the treasury, so the vault holds
 exactly what backs the invariant and no accrued-fee field can drift out of
 step with the balance. `withdraw_fees` derives its source from the treasury
 seeds, so there is no path from an authority signature to a vault.
+
+## Safety
+
+- The 1,000 LP tokens minted on the first deposit sit in a pool-owned account
+  no instruction can move, so supply never returns to zero. In
+  [`attacks.rs`](programs/amm/tests/attacks.rs) the share price attacker
+  donates 1,000,000,000 and recovers under a tenth of it.
+- The pool holds an associated token account for its own LP mint, so
+  `swap(mint_x, lp_mint)` resolves. Only the pair check stops it, and a test
+  aims at exactly that.
+- Mints must be plain. A Token-2022 transfer fee shortchanges the vault
+  against the price the curve quoted, and a permanent delegate can move the
+  reserves, so `initialize` refuses anything longer than a bare mint.
+- A locked pool still honours `withdraw`. A proportional exit cannot move the
+  price, and an admin key should not be able to strand liquidity.
