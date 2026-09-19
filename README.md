@@ -34,3 +34,23 @@ A pool is one `Config` and the five token accounts it owns:
 
 `config` signs every token CPI. `seed` is a caller-chosen `u64`, so one mint
 pair can have several pools.
+
+## The math
+
+The invariant is `x * y = k`. A swap takes the fee off the input, rounded up,
+and prices what remains against the invariant, rounded down:
+
+```text
+fee        = ceil(amount_in * fee_bps / 10_000)
+cut        = fee * protocol_fee_bps / 10_000        -> treasury
+net        = amount_in - fee
+amount_out = reserve_out * net / (reserve_in + net)
+```
+
+Only the protocol cut leaves the pool, so `k` never falls.
+
+The first deposit sets the price and mints `sqrt(x * y)`, less 1,000 LP tokens
+that stay locked. Later deposits follow the smaller side and round the other
+up, so a depositor can pay one base unit over the ratio and never one under.
+Withdrawals round down on both sides. Every product widens to `u128` before
+dividing, so two `u64::MAX` reserves cannot overflow the intermediate.
