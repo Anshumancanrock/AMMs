@@ -1,0 +1,20 @@
+[package]
+name = "amm-smoke"
+version = "0.1.0"
+edition = "2021"
+description = "Runs one pool through its whole life against a real cluster"
+
+[[bin]]
+name = "amm-smoke"
+path = "src/main.rs"
+
+[dependencies]
+amm = { path = "../programs/amm", features = ["no-entrypoint"] }
+anchor-lang = "1.1.2"
+anchor-spl = "1.1.2"
+solana-client = "3.1.14"
+solana-commitment-config = "3.0.0"
+solana-keypair = "3.0.1"
+solana-signature = "3.0.0"
+solana-signer = "3.0.0"
+solana-transaction = "3.0.2"

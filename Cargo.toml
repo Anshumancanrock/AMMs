@@ -2,6 +2,12 @@
 members = [
     "programs/*"
 ]
+# The smoke client pulls in the RPC stack, which has nothing to do with
+# building or testing the program. Keeping it out of the workspace keeps
+# `anchor test` quick.
+exclude = [
+    "client"
+]
 resolver = "2"
 
 [workspace.package]
