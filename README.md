@@ -119,3 +119,32 @@ Program [`859An1PzpQeQQdfXbaq1vpC7zqVmy4tVrg6K1pThzBSY`](https://explorer.solana
 
 The swap paid 3,948,632,137 for 1,000,000,000 in, matching the suite to the
 base unit.
+
+## Operating through downtime
+
+Nothing here goes stale while the chain is down. The pool reads no oracle,
+depends on no keeper, and fees accrue inside the vaults rather than in a
+balance something has to sweep, so a pool nobody touches for a week is in the
+state its last transaction left it in. Coming back needs an RPC node, not a
+reconciliation.
+
+What does change is the price. The pool quotes whatever the last trade left,
+and if the outside market moved, the first arbitrage transaction takes the
+difference from the liquidity providers. No constant product pool avoids that.
+What it can avoid is hurting everyone else with the same gap, which is why
+every instruction carries a caller-supplied bound: an order signed before a
+halt and landing after it fails its slippage check instead of filling at a
+price nobody agreed to.
+
+`set_locked` is the lever. The authority stops deposits and swaps in one
+transaction and opens them again later, while withdrawals stay outside the
+lock, so an unreachable admin key cannot trap anyone's liquidity. A pool that
+is not locked never touches the authority at all.
+
+On the client side: send through more than one RPC provider, retry with the
+same blockhash instead of re-signing, keep expiry short, and set
+`min_amount_out` tight. Durable nonces are the wrong tool for a swap, since a
+nonce transaction does not expire. Under congestion, add a priority fee and a
+compute budget near the measured cost rather than the 200,000 default. Every
+instruction emits an event, so an indexer that fell behind replays the log
+instead of diffing accounts.
