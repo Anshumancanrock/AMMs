@@ -100,3 +100,22 @@ process, so no validator starts and the suite takes about six seconds.
 A fresh clone gets a new program keypair from `anchor build`, so run
 `anchor keys sync` before deploying or every instruction fails with
 `DeclaredProgramIdMismatch`.
+
+## On devnet
+
+[`client/`](client/src/main.rs) drives one pool through its whole life against
+a real cluster, with the amounts and expected results the test suite uses:
+
+```sh
+cargo run --manifest-path client/Cargo.toml --release -- https://api.devnet.solana.com
+```
+
+Program [`859An1PzpQeQQdfXbaq1vpC7zqVmy4tVrg6K1pThzBSY`](https://explorer.solana.com/address/859An1PzpQeQQdfXbaq1vpC7zqVmy4tVrg6K1pThzBSY?cluster=devnet):
+[initialize](https://explorer.solana.com/tx/RKB9euJqaeQRgTgNrPsXhVMN7uHzo5UoPhvogjsrEb2JuWnnzFuf7jhfAd1fcVcoaUap6bnmM3oJ3yhExuc38yZ?cluster=devnet),
+[deposit](https://explorer.solana.com/tx/2aJduo4Ut3e1tRR57dkJFY1kkREFcFtbmCEioNPZu5jJdoDjJEezSdetrhSfQJ4hTESUmUpSk1uu5YLGycHChdnM?cluster=devnet),
+[swap](https://explorer.solana.com/tx/2XG9rkAr4Ytrr15NybqAMdL5wydLASCq4M4CKNWKqGihHPXQEfSYLP8yCRghrfno71zNwH5uxEHa2RNqCyMFtdKE?cluster=devnet),
+[withdraw_fees](https://explorer.solana.com/tx/Y8fyAcrLcMiezrfYptXoHvGfT3FtRwJeyfmPGXP6R3RFLWejX7AfhMCTpHD4KjnVhhZs2SdyQgshTNiLWiy9NNz?cluster=devnet),
+[withdraw](https://explorer.solana.com/tx/zn9dQdSXbx8yZKYB3UcC45rDwkVP92kTnco2HYyB1e7XWWZHVdiBZ8ePXhgHZbz8jb8mxz2sKFsSfusEb4mmBEf?cluster=devnet).
+
+The swap paid 3,948,632,137 for 1,000,000,000 in, matching the suite to the
+base unit.
